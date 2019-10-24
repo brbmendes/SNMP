@@ -42,7 +42,7 @@ public class SNMP
 			{
 				case 0:
 					break;
-				case 1:
+				case 1: // GET
 					try
 					{
 						System.out.println("Operação escolhida: GET");
@@ -58,10 +58,10 @@ public class SNMP
 						e.printStackTrace();
 					}
 					break;
-				case 2:
+				case 2: // GETNEXT
 					System.out.println("Operação escolhida: GETNEXT");
 					break;
-				case 3:
+				case 3: // SET
 					try
 					{
 						System.out.println("Operação escolhida: SET");
@@ -81,26 +81,23 @@ public class SNMP
 						e.printStackTrace();
 					}
 					break;
-				case 4:
+				case 4: // GETBULK
 					System.out.println("Operação escolhida: GETBULK");
 					break;
-				case 5:
+				case 5: // WALK
 					System.out.println("Operação escolhida: WALK");
 					break;
-				case 6:
+				case 6: // GETTABLE
 					System.out.println("Operação escolhida: GETTABLE");
 					break;
-				case 7:
+				case 7: // GETDELTA
 					System.out.println("Operação escolhida: GETDELTA");
 					break;
 			}	
 			
 		}
+		s.close();
 		System.out.println("Encerrando o programa");
-		
-		
-		
-		
 		System.exit(0);
 	}
 
