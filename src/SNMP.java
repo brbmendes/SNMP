@@ -1,6 +1,7 @@
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Vector;
 
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.PDU;
@@ -15,7 +16,7 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 public class SNMP
 {
 	//Par�metros gerais
-	public static final int mSNMPVersion =0; // 0 represents SNMP version=1
+	public static final int mSNMPVersion = 0; // 0 represents SNMP version=1
 	private static final int SNMP_PORT = 161;
 	
 	// Vari�veis globais
@@ -98,12 +99,11 @@ public class SNMP
 					break;
 				case 4: // GETBULK
 					System.out.println("Operacao escolhida: GETBULK");
-					ObterEntradasGetBulk();
+					ObterEntradasGetBulk();					
 					int nonRepeaters = Integer.valueOf(_nonRepeaters);
 					int maxRepetitions = Integer.valueOf(_maxRepetitions);
+					_objSNMP = new SNMP();
 					_retorno = _objSNMP.snmpGetBulk(_ip,_comunidade, _oid, _instancia, nonRepeaters, maxRepetitions);
-					System.out.println("Resposta: " +_retorno);
-					System.out.println("");
 					break;
 				case 5: // WALK
 					System.out.println("Operacao escolhida: WALK");
@@ -118,14 +118,15 @@ public class SNMP
 					int tempo = Integer.valueOf(_tempo);
 					ArrayList<String> resultados  = new ArrayList<>();
 					for(int i = 0 ; i < amostras ; i++) {
+						_objSNMP = new SNMP();
 						_retorno = _objSNMP.snmpGet(_ip, _comunidade, _oid, _instancia);
 						resultados.add(0, _retorno);
 						Thread.sleep(tempo);
 					}
 					// Delta = B - A
 					for(int i = 0 ; i < resultados.size() - 1 ; i++) {
-						int B = Integer.valueOf(resultados.get(i));
-						int A = Integer.valueOf(resultados.get(i+1));
+						int B = Integer.valueOf(resultados.get(i).trim());
+						int A = Integer.valueOf(resultados.get(i+1).trim());
 						int delta = B - A;
 						System.out.println(String.format("O delta entre %d e %d eh %d\n",B, A, delta));
 					}
@@ -156,7 +157,7 @@ public class SNMP
 
 			CommunityTarget comtarget = new CommunityTarget();
 			comtarget.setCommunity(comunidade);
-			comtarget.setVersion(SnmpConstants.version1);
+			comtarget.setVersion(SnmpConstants.version2c);
 			comtarget.setAddress(targetaddress);
 			comtarget.setRetries(2);
 			comtarget.setTimeout(5000);
@@ -210,7 +211,7 @@ public class SNMP
 
 			CommunityTarget comtarget = new CommunityTarget();
 			comtarget.setCommunity(comunidade);
-			comtarget.setVersion(SnmpConstants.version1);
+			comtarget.setVersion(SnmpConstants.version2c);
 			comtarget.setAddress(targetaddress);
 			comtarget.setRetries(2);
 			comtarget.setTimeout(5000);
@@ -265,7 +266,7 @@ public class SNMP
 			target.setAddress(targetAddress);
 			target.setRetries(2);
 			target.setTimeout(5000);
-			target.setVersion(SnmpConstants.version1);
+			target.setVersion(SnmpConstants.version2c);
 
 			PDU pdu = new PDU();
 			// Se for igual a MinValue, entao o valor passado e uma string
@@ -300,6 +301,16 @@ public class SNMP
 	
 	public String snmpGetBulk(String strAddress, String community, String strOID, String strInstancia, int nonRepeaters, int maxRepetitions)
 	{
+		
+		String[] oids = strOID.split("#");
+		VariableBinding[] array = new VariableBinding[nonRepeaters + (maxRepetitions*maxRepetitions)];
+		VariableBinding vb = null;
+		
+		for(int i = 0 ; i < oids.length ; i++) {
+			vb = new VariableBinding(new OID(oids[i]));
+			array[i] = vb;
+		}
+
 		String str="";
 		try
 		{
@@ -311,7 +322,7 @@ public class SNMP
 
 			CommunityTarget comtarget = new CommunityTarget();
 			comtarget.setCommunity(comunidade);
-			comtarget.setVersion(SnmpConstants.version1);
+			comtarget.setVersion(SnmpConstants.version2c);
 			comtarget.setAddress(targetaddress);
 			comtarget.setRetries(2);
 			comtarget.setTimeout(5000);
@@ -319,7 +330,7 @@ public class SNMP
 			PDU pdu = new PDU();
 			ResponseEvent response;
 			Snmp snmp;
-			pdu.add(new VariableBinding(new OID(strOID + "." + strInstancia)));
+			pdu.addAll(array);
 			pdu.setType(PDU.GETBULK);
 			pdu.setNonRepeaters(nonRepeaters);
 			pdu.setMaxRepetitions(maxRepetitions);
@@ -330,12 +341,10 @@ public class SNMP
 				if(response.getResponse().getErrorStatusText().equalsIgnoreCase("Success"))
 				{
 					PDU pduresponse=response.getResponse();
-					str=pduresponse.getVariableBindings().firstElement().toString();
-					if(str.contains("="))
-					{
-						int len = str.indexOf("=");
-						str=str.substring(len+1, str.length());
-					}
+					Vector<? extends VariableBinding> vbs = pduresponse.getVariableBindings();
+		               for (VariableBinding vbres : vbs) {
+		                   System.out.println(vbres.getVariable().toString());
+			        }
 				}
 			}
 			else
@@ -408,17 +417,14 @@ public class SNMP
 		System.out.println("Informe a comunidade: public ou private");
 		_comunidade = s.nextLine();
 		
-		System.out.println("Informe a OID");
-		_oid = s.nextLine();
-		
-		System.out.println("Informe a instancia, sem o ponto(.)");
-		_instancia = s.nextLine();
-		
 		System.out.println("Informe a quantidade de Non Repeaters");
 		_nonRepeaters = s.nextLine();
 		
 		System.out.println("Informe a quantidade de Max Repetitions");
 		_maxRepetitions = s.nextLine();
+		
+		System.out.println("Informe as OIDs separadas por #");
+		_oid = s.nextLine();
 	}
 	
 	private static void ObterEntradasGetDelta() {
