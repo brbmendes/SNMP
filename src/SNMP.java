@@ -14,11 +14,11 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 public class SNMP
 {
-	//Parâmetros gerais
+	//Parï¿½metros gerais
 	public static final int mSNMPVersion =0; // 0 represents SNMP version=1
 	private static final int SNMP_PORT = 161;
 	
-	// Variáveis globais
+	// Variï¿½veis globais
 	public static String _ip;
 	public static String _comunidade;
 	public static String _oid;
@@ -39,7 +39,7 @@ public class SNMP
 		
 		while(operacao != 0){
 			
-			System.out.println("Escolha a operação desejada:");
+			System.out.println("Escolha a operacao desejada:");
 			System.out.println("1 - GET");
 			System.out.println("2 - GETNEXT");
 			System.out.println("3 - SET");
@@ -58,11 +58,11 @@ public class SNMP
 				case 1: // GET
 					try
 					{
-						System.out.println("Operação escolhida: GET");
+						System.out.println("Operacao escolhida: GET");
 						ObterEntradasGet();
 						_objSNMP = new SNMP();
 						_retorno = _objSNMP.snmpGet(_ip, _comunidade, _oid, _instancia);
-						System.out.println(_retorno);
+						System.out.println("Resposta: " +_retorno);
 						System.out.println("");
 					}
 					catch (Exception e)
@@ -71,17 +71,17 @@ public class SNMP
 					}
 					break;
 				case 2: // GETNEXT
-					System.out.println("Operação escolhida: GETNEXT");
+					System.out.println("Operacao escolhida: GETNEXT");
 					ObterEntradasGetNext();
 					_objSNMP = new SNMP();
 					_retorno = _objSNMP.snmpGetNext(_ip,_comunidade, _oid, _instancia);
-					System.out.println(_retorno);
+					System.out.println("Resposta: " +_retorno);
 					System.out.println("");
 					break;
 				case 3: // SET
 					try
 					{
-						System.out.println("Operação escolhida: SET");
+						System.out.println("Operacao escolhida: SET");
 						ObterEntradasSet();
 						_objSNMP = new SNMP();
 						int valor = Integer.MIN_VALUE;
@@ -97,22 +97,22 @@ public class SNMP
 					}
 					break;
 				case 4: // GETBULK
-					System.out.println("Operação escolhida: GETBULK");
+					System.out.println("Operacao escolhida: GETBULK");
 					ObterEntradasGetBulk();
 					int nonRepeaters = Integer.valueOf(_nonRepeaters);
 					int maxRepetitions = Integer.valueOf(_maxRepetitions);
 					_retorno = _objSNMP.snmpGetBulk(_ip,_comunidade, _oid, _instancia, nonRepeaters, maxRepetitions);
-					System.out.println(_retorno);
+					System.out.println("Resposta: " +_retorno);
 					System.out.println("");
 					break;
 				case 5: // WALK
-					System.out.println("Operação escolhida: WALK");
+					System.out.println("Operacao escolhida: WALK");
 					break;
 				case 6: // GETTABLE
-					System.out.println("Operação escolhida: GETTABLE");
+					System.out.println("Operacao escolhida: GETTABLE");
 					break;
 				case 7: // GETDELTA
-					System.out.println("Operação escolhida: GETDELTA");
+					System.out.println("Operacao escolhida: GETDELTA");
 					ObterEntradasGetDelta();
 					int amostras = Integer.valueOf(_amostras);
 					int tempo = Integer.valueOf(_tempo);
@@ -189,12 +189,16 @@ public class SNMP
 		} catch(Exception e) { 
 			e.printStackTrace(); 
 		}
-		System.out.println("Response="+str);
 		return str;
 	}
 	
 	public String snmpGetNext(String strAddress, String community, String strOID, String strInstancia)
 	{
+		String instancia = strInstancia;
+		if(strInstancia.equals("null")) {
+			instancia = "0";
+		}
+		
 		String str="";
 		try
 		{
@@ -214,10 +218,10 @@ public class SNMP
 			PDU pdu = new PDU();
 			ResponseEvent response;
 			Snmp snmp;
-			pdu.add(new VariableBinding(new OID(strOID + "." + strInstancia)));
+			pdu.add(new VariableBinding(new OID(strOID + "." + instancia)));
 			pdu.setType(PDU.GETNEXT);
 			snmp = new Snmp(transport); 
-			response = snmp.get(pdu,comtarget);
+			response = snmp.getNext(pdu,comtarget);
 			if(response != null)
 			{
 				if(response.getResponse().getErrorStatusText().equalsIgnoreCase("Success"))
@@ -239,7 +243,6 @@ public class SNMP
 		} catch(Exception e) { 
 			e.printStackTrace(); 
 		}
-		System.out.println("Response="+str);
 		return str;
 	}
 	
@@ -265,9 +268,10 @@ public class SNMP
 			target.setVersion(SnmpConstants.version1);
 
 			PDU pdu = new PDU();
-			// Se for igual a MinValue, então o valor passado é uma string
+			// Se for igual a MinValue, entao o valor passado e uma string
 			if(intValor == Integer.MIN_VALUE) {
-				pdu.add(new VariableBinding(new OID(strOID + "." + strInstancia), _valor));
+				Variable var = new OctetString(_valor);
+				pdu.add(new VariableBinding(new OID(strOID + "." + strInstancia), var));
 			} else {
 				pdu.add(new VariableBinding(new OID(strOID + "." + strInstancia), new Integer32(intValor)));
 			}
@@ -282,7 +286,7 @@ public class SNMP
 					// immediately can be useful when sending a request to a broadcast
 					// address.
 					((Snmp)event.getSource()).cancel(event.getRequest(), this);
-					System.out.println("Set Status is:"+event.getResponse().getErrorStatusText());
+					System.out.println("Status do set: "+event.getResponse().getErrorStatusText());
 				}
 			};
 			snmp.send(pdu, target, null, listener);
@@ -320,7 +324,7 @@ public class SNMP
 			pdu.setNonRepeaters(nonRepeaters);
 			pdu.setMaxRepetitions(maxRepetitions);
 			snmp = new Snmp(transport); 
-			response = snmp.get(pdu,comtarget);
+			response = snmp.getBulk(pdu,comtarget);
 			if(response != null)
 			{
 				if(response.getResponse().getErrorStatusText().equalsIgnoreCase("Success"))
@@ -342,7 +346,6 @@ public class SNMP
 		} catch(Exception e) { 
 			e.printStackTrace(); 
 		}
-		System.out.println("Response="+str);
 		return str;
 	}
 	
@@ -357,7 +360,7 @@ public class SNMP
 		System.out.println("Informe a OID");
 		_oid = s.nextLine();
 		
-		System.out.println("Informe a instância, sem o ponto(.)");
+		System.out.println("Informe a instancia, sem o ponto(.)");
 		_instancia = s.nextLine();
 	}
 	
@@ -372,7 +375,7 @@ public class SNMP
 		System.out.println("Informe a OID");
 		_oid = s.nextLine();
 		
-		System.out.println("Informe a instância, sem o ponto(.) ou null para não informar a instancia");
+		System.out.println("Informe a instancia, sem o ponto(.) ou null para nao informar a instancia");
 		_instancia = s.nextLine();
 	}
 	
@@ -387,7 +390,7 @@ public class SNMP
 		System.out.println("Informe a OID");
 		_oid = s.nextLine();
 		
-		System.out.println("Informe a instância, sem o ponto(.)");
+		System.out.println("Informe a instancia, sem o ponto(.)");
 		_instancia = s.nextLine();
 		
 		System.out.println("Informe o tipo de dado: string ou int");
@@ -408,7 +411,7 @@ public class SNMP
 		System.out.println("Informe a OID");
 		_oid = s.nextLine();
 		
-		System.out.println("Informe a instância, sem o ponto(.)");
+		System.out.println("Informe a instancia, sem o ponto(.)");
 		_instancia = s.nextLine();
 		
 		System.out.println("Informe a quantidade de Non Repeaters");
@@ -429,7 +432,7 @@ public class SNMP
 		System.out.println("Informe a OID");
 		_oid = s.nextLine();
 		
-		System.out.println("Informe a instância, sem o ponto(.)");
+		System.out.println("Informe a instancia, sem o ponto(.)");
 		_instancia = s.nextLine();
 		
 		System.out.println("Informe a quantidade de amostras");
